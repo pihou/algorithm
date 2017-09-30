@@ -1,3 +1,5 @@
+#!-*- coding=utf8 -*-
+from graphviz import Digraph
 
 import queue
 import random
@@ -114,18 +116,13 @@ class RBTree(object):
                 n = n.right
 
     def _balance_tree(self, node):
-        def case1(n):
+        n = node
+        while n:
             if not n.parent:
                 n.black = True
-                return
-            case2(n)
-
-        def case2(n):
+                break
             if n.parent.black:
-                return
-            case3(n)
-
-        def case3(n):
+                break
             g = n.get_grandparent()
             p = n.parent
             u = n.get_uncle()
@@ -133,22 +130,14 @@ class RBTree(object):
                 u.black = True
                 p.black = True
                 g.black = False
-                case1(g)
-                return
-            case4(n)
-
-        def case4(n):
-            p = n.get_parent()
-            g = n.get_grandparent()
+                n = g
+                continue
             if g.left is p and p.right is n:
                 self.rotate_left(p)
                 n = p
             elif g.right is p and p.left is n:
                 self.rotate_right(p)
                 n = p
-            case5(n)
-
-        def case5(n):
             g = n.get_grandparent()
             p = n.parent
             if g.left is p:
@@ -157,8 +146,7 @@ class RBTree(object):
                 self.rotate_left(g)
             p.black = True
             g.black = False
-
-        case1(node)
+            break
 
     def add(self, node):
         node.black = False
@@ -265,12 +253,11 @@ class RBTree(object):
 
 if __name__ == "__main__":
     tree = RBTree()
-    for i in xrange(1000):
+    for i in xrange(24):
         value = random.randint(0, 10000)
         tree.add(Node(value))
 
     def print_tree(tree, name):
-        from graphviz import Digraph
         dot = Digraph()
         q = queue.Queue()
         q.put(tree.root)
@@ -284,7 +271,7 @@ if __name__ == "__main__":
             if x.right:
                 dot.edge(str(id(x)), str(id(x.right)))
                 q.put(x.right)
-        dot.render(name, view=False)
+        dot.render(name, view=True)
 
     #for i in xrange(16):
     node = tree._findmin()
