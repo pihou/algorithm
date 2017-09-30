@@ -164,12 +164,37 @@ class RBTree(object):
         return n
 
     def removemin(self, n):
-        def case1(n):
+        '''
+            c: child
+            n: now
+            p: parent
+            g: grandparent
+            s: sibling
+            u: uncle
+        '''
+        if not n:
+            return
+        c = n.right if n.left is Nil else n.left
+        p = n.parent 
+        n.parent = None
+        c.parent = p 
+        if not p:
+            c.black = True
+            self.root = c
+            return
+        if p.left is n:
+            p.left = c
+        else:
+            p.right = c
+        if not n.black:
+            return
+        if not c.black:
+            c.black = True
+            return
+        n = c
+        while n:
             if not n.parent:
-                return
-            case2(n)
-
-        def case2(n):
+                break
             p = n.parent
             s = n.get_sibling()
             if not s.black:
@@ -179,29 +204,19 @@ class RBTree(object):
                     self.rotate_right(p)
                 s.black = True
                 p.black = False
-            case3(n)
 
-        def case3(n):
             p = n.parent
             s = n.get_sibling()
             if p.black and s.black and s.left.black and s.right.black:
                 s.black = False
-                case1(p)
-                return
-            case4(n)
+                n = p
+                continue
 
-        def case4(n):
-            p = n.parent
-            s = n.get_sibling()
             if not p.black and s.black and s.left.black and s.right.black:
                 p.black = True
                 s.black = False
-                return
-            case5(n)
-            
-        def case5(n):
-            p = n.parent
-            s = n.get_sibling()
+                break
+
             if p.right is s and s.right.black and not s.left.black:
                 s.black = False
                 s.left.black = True
@@ -210,71 +225,50 @@ class RBTree(object):
                 s.black = False
                 s.right.black = True
                 self.rotate_left(s)
-            case6(n)
 
-        def case6(n):
             p = n.parent
             s = n.get_sibling()
             s.black = p.black
             p.black = True
-
             if p.right is s:
                 s.right.black = True
                 self.rotate_left(p)
             else:
                 s.left.black = True
                 self.rotate_right(p)
+            break
 
-        if not n:
-            return
-        child  = n.right if n.left is Nil else n.left
-        parent = n.parent 
-        n.parent = None
-        if not parent:
-            child.parent = None
-            child.black = True
-            self.root = child
-            return
-        if parent.left is n:
-            parent.left = child
-            #if not child is Nil:
-            child.parent = parent
-        else:
-            parent.right = child
-            #if not child is Nil:
-            child.parent = parent
-        if not n.black:
-            return
-        if not child.black:
-            child.black = True
-            return
-        case1(child)
-        
 
 if __name__ == "__main__":
-    tree = RBTree()
-    for i in xrange(24):
-        value = random.randint(0, 10000)
-        tree.add(Node(value))
-
-    def print_tree(tree, name):
-        dot = Digraph()
+    def print_tree(tree, dot, index):
+        def get_sign(index, node):
+            return str(index) + str(id(node))
         q = queue.Queue()
         q.put(tree.root)
         while not q.empty():
-            x = q.get()
-            style = None if x.black else [("fillcolor","red"), ("style", "filled")]
-            dot.node(str(id(x)), "%s"%(x.value), style)
-            if x.left:
-                dot.edge(str(id(x)), str(id(x.left)))
-                q.put(x.left)
-            if x.right:
-                dot.edge(str(id(x)), str(id(x.right)))
-                q.put(x.right)
-        dot.render(name, view=True)
+            node = q.get()
+            sign = get_sign(index, node)
+            style = None if node.black else [("fillcolor","red"), ("style", "filled")]
+            dot.node(sign, "%s"%(node.value), style)
+            if node.left:
+                dot.edge(sign, get_sign(index, node.left))
+                q.put(node.left)
+            if node.right:
+                dot.edge(sign, get_sign(index, node.right))
+                q.put(node.right)
+        return dot
 
-    #for i in xrange(16):
-    node = tree._findmin()
-    tree.removemin(node)
-    print_tree(tree, str(i)) 
+    dots = Digraph()
+    tree = RBTree()
+    num = 24
+    for i in xrange(num):
+        value = random.randint(0, 10000)
+        tree.add(Node(value))
 
+    for i in xrange(num):
+        node = tree._findmin()
+        tree.removemin(node)
+        dot = Digraph()
+        print_tree(tree, dot, str(i)) 
+        dots.subgraph(graph=dot)
+    dots.render(view=True)
