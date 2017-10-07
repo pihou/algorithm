@@ -461,17 +461,15 @@ PyMODINIT_FUNC initrbtree(void)
         PyRBTree_new,                // tp_new
     };
 
-    PyObject *m;
-    if (PyType_Ready(&_TreeType) < 0)
-        return;
-    m = Py_InitModule("rbtree", NULL);
-	Nil = &nil;
-	Nil->black = 1;
+    PyObject *m = Py_InitModule3("rbtree", NULL, "rbtree module");
     if (m == NULL)
         return;
+    if (PyType_Ready(&_TreeType) < 0)
+        return;
+	Nil = &nil;
+	Nil->black = 1;
     RBTreeType = &_TreeType;
     Py_INCREF(RBTreeType);
-
     PyModule_AddObject(m, "RBTree", (PyObject*)RBTreeType);
 
     RBTreeError = PyErr_NewException("rbtree.error", NULL, NULL);
