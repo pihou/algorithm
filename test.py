@@ -1,8 +1,10 @@
-from graphviz import Digraph
+#from graphviz import Digraph
 from rbtree import RBTree
 
 import random
 import time
+import gc
+import sys
 
 
 def print_tree(dot, debug, i=0):
@@ -20,17 +22,20 @@ def print_tree(dot, debug, i=0):
 
 def main():
     t = RBTree()
+    gc.is_tracked(t)
+	
     data = []
-    for i in xrange(1000):
+    for i in xrange(10000):
         num = random.randint(0, 10000)
         t[num] = str(num)
         data.append(num)
-    dots = Digraph()
+    #dots = Digraph()
     #for i in data:
     #    del t[i]
-    print_tree(dots, t.debug(), i)
-    dots.render(view=True)
+    #print_tree(dots, t.debug(), i)
+    #dots.render(view=True)
 
 if __name__ == "__main__":
     main()
-    time.sleep(100)
+    #time.sleep(100)
+

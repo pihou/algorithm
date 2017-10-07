@@ -103,28 +103,16 @@ static PyMemberDef TreeMembers[] = {
     {NULL}  /* Sentinel */
 };
 
-static PyObject *
-PyRBTree_New()
-{
-    PyRBTree *op = PyObject_GC_New(PyRBTree, RBTreeType);
-    if (op != NULL) {
-        op->root = Nil;
-    }
-    else
-        return NULL;
-    Py_INCREF(op);
-    _PyObject_GC_TRACK(op);
-    return (PyObject *)op;
-}
 
 static PyObject *
 PyRBTree_new(PyTypeObject* type, PyObject* args, PyObject* kw)
 {
-    PyObject *newfunc;
-    newfunc = (PyObject *)PyRBTree_New();
-    if (newfunc == NULL)
-        return NULL;
-    return (PyObject *)newfunc;
+	PyRBTree *self;
+	self = (PyRBTree *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->root = Nil;
+	}
+	return (PyObject *)self;
 }
 
 static PyObject *
@@ -440,7 +428,7 @@ PyMODINIT_FUNC initrbtree(void)
         0,                                // tp_getattro
         0,                                // tp_setattro
         0,                                // tp_as_buffer
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE ,    // tp_flags
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,    // tp_flags
         0,                    // tp_doc
         0,                                // tp_traverse
         0,                                // tp_clear
@@ -471,7 +459,6 @@ PyMODINIT_FUNC initrbtree(void)
     RBTreeType = &_TreeType;
     Py_INCREF(RBTreeType);
     PyModule_AddObject(m, "RBTree", (PyObject*)RBTreeType);
-
     RBTreeError = PyErr_NewException("rbtree.error", NULL, NULL);
     Py_INCREF(RBTreeError);
     PyModule_AddObject(m, "error", RBTreeError);
