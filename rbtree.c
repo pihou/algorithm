@@ -165,7 +165,7 @@ static void balance_tree_remove(PyObject *self, rbnode *node){
             }
             p->black = 0;
             s->black = 1;
-            break;
+            continue;
         }
 
         if (s->left->black && s->right->black && p->black){

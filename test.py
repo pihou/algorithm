@@ -25,8 +25,7 @@ def main():
     t = RBTree()
     data = []
     #start = time.time()
-    print(">>>>>>>> FanPrint[0].main", 111)
-    for i in xrange(16):
+    for i in xrange(24):
         num = random.randint(0, 10000)
         t[num] = str(num)
         data.append(num)
