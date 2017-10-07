@@ -1,7 +1,8 @@
 *.swp
 *.pyc
 *.pdf
+*.gv
 *.so
 .a
-test.py
 test.sh
+*.dSYM
