@@ -1,4 +1,4 @@
-#from graphviz import Digraph
+from graphviz import Digraph
 from rbtree import RBTree
 
 import random
@@ -21,21 +21,27 @@ def print_tree(dot, debug, i=0):
             dot.edge(i+str(info["id"]), i+str(info["right"]))
 
 def main():
+    dots = Digraph(name="dots")
     t = RBTree()
-    gc.is_tracked(t)
-	
     data = []
-    for i in xrange(10000):
+    #start = time.time()
+    print(">>>>>>>> FanPrint[0].main", 111)
+    for i in xrange(16):
         num = random.randint(0, 10000)
         t[num] = str(num)
         data.append(num)
-    #dots = Digraph()
-    #for i in data:
-    #    del t[i]
-    #print_tree(dots, t.debug(), i)
-    #dots.render(view=True)
+    dot = Digraph()
+    dots.subgraph(dot)
+    print_tree(dot, t.debug())
+    #end = time.time()
+    #print "total time:%s" % (end-start)
+    for i, d in enumerate(data):
+        del t[d]
+        dot = Digraph()
+        print_tree(dot, t.debug(), i)
+        dots.subgraph(dot)
+    dots.render(view=True)
 
 if __name__ == "__main__":
     main()
-    #time.sleep(100)
 
