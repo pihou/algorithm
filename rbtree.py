@@ -3,6 +3,7 @@ from graphviz import Digraph
 
 import queue
 import random
+import time
 
 class Node(object):
     def __init__(self, value, nil=False):
@@ -258,9 +259,10 @@ if __name__ == "__main__":
                 q.put(node.right)
         return dot
 
-    dots = Digraph()
+    start = time.time()
+    #dots = Digraph()
     tree = RBTree()
-    num = 24
+    num = 100*10000
     for i in xrange(num):
         value = random.randint(0, 10000)
         tree.add(Node(value))
@@ -268,7 +270,9 @@ if __name__ == "__main__":
     for i in xrange(num):
         node = tree._findmin()
         tree.removemin(node)
-        dot = Digraph()
-        print_tree(tree, dot, str(i)) 
-        dots.subgraph(graph=dot)
-    dots.render(view=True)
+        #dot = Digraph()
+        #print_tree(tree, dot, str(i)) 
+        #dots.subgraph(graph=dot)
+    #dots.render(view=True)
+    end = time.time()
+    print "total time: %s"%(end-start)
