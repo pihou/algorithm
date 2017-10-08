@@ -25,7 +25,7 @@ def main():
     t = RBTree()
     data = []
     #start = time.time()
-    for i in xrange(24):
+    for i in xrange(36):
         num = random.randint(0, 10000)
         t[num] = str(num)
         data.append(num)
