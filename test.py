@@ -25,13 +25,14 @@ def main():
     t = RBTree()
     data = []
     start = time.time()
-    for i in xrange(100*10000):
+    for i in xrange(1000):
         num = random.randint(0, 10000)
         t[num] = str(num)
         data.append(num)
-    #dot = Digraph()
-    #dots.subgraph(dot)
-    #print_tree(dot, t.debug())
+    dot = Digraph()
+    print_tree(dot, t.debug())
+    dots.subgraph(dot)
+    #t.debug()
     for i, d in enumerate(data):
         del t[d]
         #dot = Digraph()
@@ -39,7 +40,7 @@ def main():
         #dots.subgraph(dot)
     end = time.time()
     print "total time:%s" % (end-start)
-    #dots.render(view=True)
+    dots.render(view=True)
 
 if __name__ == "__main__":
     main()

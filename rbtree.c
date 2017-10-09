@@ -2,7 +2,6 @@
 #include <python2.7/structmember.h>
 
 typedef struct rbnode{
-    PyObject_HEAD
     PyObject *key;
     PyObject *value;
     int black;
@@ -15,6 +14,58 @@ typedef struct {
     PyObject_HEAD
     rbnode *root;
 }PyRBTree;
+
+typedef struct {
+    void **head;
+    long group;
+    long size;
+}stack;
+
+static const int SMALL_REQUEST_THRESHOLD = 512;
+static const int CAPACITY = 512/sizeof(void *) - 1;
+
+static void push(stack *s, void *p){
+    void **link = s->head;
+    int group_count = s->size/CAPACITY;
+    if (! (s->size%CAPACITY) ){
+        for (;group_count>1; group_count--){
+            link = *(link+CAPACITY);
+        }
+        if (group_count >= 1){
+            *(link+CAPACITY) = (void **)PyObject_Malloc(SMALL_REQUEST_THRESHOLD);
+        }else{
+            s->head = (void **)PyObject_Malloc(SMALL_REQUEST_THRESHOLD);
+        }
+        s->group++;
+    }
+    int shift = s->size%CAPACITY;
+    link = s->head;
+    group_count = s->size/CAPACITY;
+    for (;group_count>0; group_count--){
+        link = *(link+CAPACITY);
+    }
+    *(link+shift) = p;
+    s->size++;
+}
+
+static void *pop(stack *s){
+    void * r = NULL;
+    assert(s->size);
+    s->size--;
+
+    int shift = s->size%CAPACITY;
+    void **link = s->head;
+    int group_count = s->size/CAPACITY;
+    for (;group_count>0; group_count--){
+        link = *(link+CAPACITY);
+    }
+    r = *(link+shift);
+    if (!shift){
+        PyObject_Free(link+shift);
+    }
+    return r;
+}
+    
 
 rbnode nil;
 static rbnode * Nil;
@@ -29,7 +80,8 @@ static PyTypeObject *RBTreeType;
 
 static PyObject *make_debug_info(rbnode *n){
     PyObject *i = PyDict_New();
-    PyDict_SetItem(i, id, PyLong_FromLong((long)n));
+    PyObject *x = PyLong_FromLong((long)n);
+    PyDict_SetItem(i, id, x);
     PyDict_SetItem(i, left, n->left?PyLong_FromLong((long)n->left):Py_None);
     PyDict_SetItem(i, right, n->right?PyLong_FromLong((long)n->right):Py_None);
     PyDict_SetItem(i, black, n->black?Py_True:Py_False);
@@ -42,23 +94,19 @@ static PyObject *debug(PyObject *self, PyObject *args)
 {
     PyRBTree *t = (PyRBTree *)self;
     PyObject *list = PyList_New(0);
-    PyObject *stack = PyList_New(0);
+    stack  s = {NULL, 0, 0};
 
     if (t->root != Nil){
-        PyList_Append(stack, (PyObject *)t->root);
+        push(&s, (void *)t->root);
     }
-    Py_ssize_t size = 0;
     rbnode *n = NULL;
-    while(PyList_Size(stack)){
-        size = PyList_Size(stack)-1;
-        n = (rbnode *)PySequence_GetItem(stack, size);
-        PySequence_DelItem(stack, size);
-        Py_DECREF((PyObject*)n);
+    while(s.size > 0){
+        n = pop(&s);
         if (n->left != Nil){
-            PyList_Append(stack, (PyObject*)n->left);
+            push(&s, (void *)n->left);
         }
         if (n->right != Nil){
-            PyList_Append(stack, (PyObject*)n->right);
+            push(&s, (void *)n->right);
         }
         PyList_Append(list, make_debug_info(n));
     }
@@ -248,7 +296,7 @@ static int add_node(PyObject *self, PyObject *v, PyObject *w){
     if (!x){
         return -1;
     }
-    Py_INCREF(x);
+    ((PyObject *)x)->ob_refcnt = 1;
     Py_INCREF(v);
     Py_INCREF(w);
     x->key = v;
