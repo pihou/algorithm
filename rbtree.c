@@ -93,20 +93,15 @@ static PyObject *debug(PyObject *self, PyObject *args)
     PyRBTree *t = (PyRBTree *)self;
     PyObject *list = PyList_New(0);
     stack  s = {NULL, 0};
-
-    if (t->root != Nil){
-        push(&s, (void *)t->root);
-    }
-    rbnode *n = NULL;
-    while(s.size > 0){
+    rbnode *n = t->root;
+    while(s.size > 0 || n != Nil){
+        while (n != Nil){
+            push(&s, n);
+            n = n->left;
+        }
         n = pop(&s);
-        if (n->left != Nil){
-            push(&s, (void *)n->left);
-        }
-        if (n->right != Nil){
-            push(&s, (void *)n->right);
-        }
         PyList_Append(list, make_debug_info(n));
+        n = n->right;
     }
     PyList_Append(list, make_debug_info(Nil));
     return list;
