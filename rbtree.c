@@ -63,7 +63,7 @@ static void *pop(stack *s){
     }
     return r;
 }
-    
+
 
 rbnode nil;
 static rbnode * Nil;
