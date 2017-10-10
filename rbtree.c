@@ -17,7 +17,6 @@ typedef struct {
 
 typedef struct {
     void **head;
-    long group;
     long size;
 }stack;
 
@@ -26,22 +25,21 @@ static const int CAPACITY = 512/sizeof(void *) - 1;
 
 static void push(stack *s, void *p){
     void **link = s->head;
-    int group_count = s->size/CAPACITY;
-    if (! (s->size%CAPACITY) ){
-        for (;group_count>1; group_count--){
+    int count = s->size/CAPACITY;
+    int shift = s->size%CAPACITY;
+    if (!shift){
+        for (;count>1; count--){
             link = *(link+CAPACITY);
         }
-        if (group_count >= 1){
+        if (count == 1){
             *(link+CAPACITY) = (void **)PyObject_Malloc(SMALL_REQUEST_THRESHOLD);
         }else{
             s->head = (void **)PyObject_Malloc(SMALL_REQUEST_THRESHOLD);
         }
-        s->group++;
     }
-    int shift = s->size%CAPACITY;
     link = s->head;
-    group_count = s->size/CAPACITY;
-    for (;group_count>0; group_count--){
+    count = s->size/CAPACITY;
+    for (;count>0; count--){
         link = *(link+CAPACITY);
     }
     *(link+shift) = p;
@@ -54,14 +52,14 @@ static void *pop(stack *s){
     s->size--;
 
     int shift = s->size%CAPACITY;
+    int count = s->size/CAPACITY;
     void **link = s->head;
-    int group_count = s->size/CAPACITY;
-    for (;group_count>0; group_count--){
+    for (;count>0; count--){
         link = *(link+CAPACITY);
     }
     r = *(link+shift);
     if (!shift){
-        PyObject_Free(link+shift);
+        PyObject_Free(link);
     }
     return r;
 }
@@ -94,7 +92,7 @@ static PyObject *debug(PyObject *self, PyObject *args)
 {
     PyRBTree *t = (PyRBTree *)self;
     PyObject *list = PyList_New(0);
-    stack  s = {NULL, 0, 0};
+    stack  s = {NULL, 0};
 
     if (t->root != Nil){
         push(&s, (void *)t->root);
