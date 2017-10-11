@@ -74,7 +74,6 @@ static PyObject *key;
 static PyObject *black;
 static PyObject *value;
 static PyObject *RBTreeError;
-static PyTypeObject *RBTreeType;
 
 static PyObject *make_debug_info(rbnode *n){
     PyObject *i = PyDict_New();
@@ -392,55 +391,56 @@ static PyMappingMethods tree_as_mapping = {
 	(objobjargproc)dict_ass_sub, /*mp_ass_subscript*/
 };
 
+static PyTypeObject RBTreeType = {
+    //PyVarObject_HEAD_INIT(NULL, 0)
+    PyObject_HEAD_INIT(NULL)
+    0,                                // ob_size
+    "rbtree.RBTree",                  // tp_name
+    sizeof(PyRBTree),                 // tp_basicsize
+    0,                                // tp_itemsize
+    0,                                // tp_dealloc
+    0,                                // tp_print
+    0,                                // tp_getattr
+    0,                                // tp_setattr
+    0,                                // tp_compare
+    0,                                // tp_repr
+    0,                                // tp_as_number
+    0,                                // tp_as_sequence
+    &tree_as_mapping,                 // tp_as_mapping
+    0,                                // tp_hash
+    0,                                // tp_call
+    0,                                // tp_str
+    0,                                // tp_getattro
+    0,                                // tp_setattro
+    0,                                // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,    // tp_flags
+    0,                                // tp_doc
+    0,                                // tp_traverse
+    0,                                // tp_clear
+    0,                                // tp_richcompare
+    0,                                // tp_weaklistoffset
+    0,                                // tp_iter
+    0,                                // tp_iternext
+    TreeMethods,                      // tp_methods
+    TreeMembers,                      // tp_members
+    0,                                // tp_getset
+    0,                                // tp_base
+    0,                                // tp_dict
+    0,                                // tp_descr_get
+    0,                                // tp_descr_set
+    0,                                // tp_dictoffset
+    0,                                // tp_init
+    0,                                // tp_alloc
+    PyRBTree_New,                     // tp_new
+};
+
 PyMODINIT_FUNC initrbtree(void)
 {
-    static PyTypeObject _TreeType = {
-        //PyVarObject_HEAD_INIT(NULL, 0)
-        PyObject_HEAD_INIT(NULL)
-        0,                                // ob_size
-        "rbtree.RBTree",                  // tp_name
-        sizeof(PyRBTree),                 // tp_basicsize
-        0,                                // tp_itemsize
-        0,                                // tp_dealloc
-        0,                                // tp_print
-        0,                                // tp_getattr
-        0,                                // tp_setattr
-        0,                                // tp_compare
-        0,                                // tp_repr
-        0,                                // tp_as_number
-        0,                                // tp_as_sequence
-		&tree_as_mapping,                 // tp_as_mapping
-        0,                                // tp_hash
-        0,                                // tp_call
-        0,                                // tp_str
-        0,                                // tp_getattro
-        0,                                // tp_setattro
-        0,                                // tp_as_buffer
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,    // tp_flags
-        0,                                // tp_doc
-        0,                                // tp_traverse
-        0,                                // tp_clear
-        0,                                // tp_richcompare
-        0,                                // tp_weaklistoffset
-        0,                                // tp_iter
-        0,                                // tp_iternext
-        TreeMethods,                      // tp_methods
-        TreeMembers,                      // tp_members
-        0,                                // tp_getset
-        0,                                // tp_base
-        0,                                // tp_dict
-        0,                                // tp_descr_get
-        0,                                // tp_descr_set
-        0,                                // tp_dictoffset
-        0,                                // tp_init
-        0,                                // tp_alloc
-        PyRBTree_New,                     // tp_new
-    };
 
     PyObject *m = Py_InitModule3("rbtree", NULL, "rbtree module");
     if (m == NULL)
         return;
-    if (PyType_Ready(&_TreeType) < 0)
+    if (PyType_Ready(&RBTreeType) < 0)
         return;
 	Nil = &nil;
 	Nil->black = 1;
@@ -450,9 +450,8 @@ PyMODINIT_FUNC initrbtree(void)
     value = PyString_FromString("value");
     left = PyString_FromString("left");
     right = PyString_FromString("right");
-    RBTreeType = &_TreeType;
-    Py_INCREF(RBTreeType);
-    PyModule_AddObject(m, "RBTree", (PyObject*)RBTreeType);
+    Py_INCREF(&RBTreeType);
+    PyModule_AddObject(m, "RBTree", (PyObject*)&RBTreeType);
     RBTreeError = PyErr_NewException("rbtree.error", NULL, NULL);
     Py_INCREF(RBTreeError);
     PyModule_AddObject(m, "error", RBTreeError);
