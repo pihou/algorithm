@@ -15,10 +15,15 @@ typedef struct {
     rbnode *root;
 }PyRBTree;
 
-typedef struct {
+typedef struct stack{
     void **head;
     long size;
 }stack;
+
+typedef struct {
+    PyObject_HEAD
+    stack *s;
+}rbtreeiterobj;
 
 static const int SMALL_REQUEST_THRESHOLD = 512;
 static const int CAPACITY = 512/sizeof(void *) - 1;
@@ -67,23 +72,23 @@ static void *pop(stack *s){
 
 rbnode nil;
 static rbnode * Nil;
-static PyObject *id;
-static PyObject *left;
-static PyObject *right;
-static PyObject *key;
-static PyObject *black;
-static PyObject *value;
+static PyObject *g_id;
+static PyObject *g_left;
+static PyObject *g_right;
+static PyObject *g_key;
+static PyObject *g_black;
+static PyObject *g_value;
 static PyObject *RBTreeError;
 
 static PyObject *make_debug_info(rbnode *n){
     PyObject *i = PyDict_New();
     PyObject *x = PyLong_FromLong((long)n);
-    PyDict_SetItem(i, id, x);
-    PyDict_SetItem(i, left, n->left?PyLong_FromLong((long)n->left):Py_None);
-    PyDict_SetItem(i, right, n->right?PyLong_FromLong((long)n->right):Py_None);
-    PyDict_SetItem(i, black, n->black?Py_True:Py_False);
-    PyDict_SetItem(i, key, n->key?n->key:Py_None);
-    PyDict_SetItem(i, value, n->value?n->value:Py_None);
+    PyDict_SetItem(i, g_id, x);
+    PyDict_SetItem(i, g_left, n->left?PyLong_FromLong((long)n->left):Py_None);
+    PyDict_SetItem(i, g_right, n->right?PyLong_FromLong((long)n->right):Py_None);
+    PyDict_SetItem(i, g_black, n->black?Py_True:Py_False);
+    PyDict_SetItem(i, g_key, n->key?n->key:Py_None);
+    PyDict_SetItem(i, g_value, n->value?n->value:Py_None);
     return i;
 }
 
@@ -368,6 +373,28 @@ static int add_node(PyObject *self, PyObject *v, PyObject *w){
     return 0;
 }
 
+
+static PyObject *
+rbtreeiter_next(PyObject *t)
+{
+    rbtreeiterobj *it = (rbtreeiterobj*)t;
+    if (it->s->size <= 0){
+        return NULL;
+    }
+    rbnode *n = pop(it->s);
+    PyObject *key = n->key;
+    Py_INCREF(key);
+    n = n->right;
+    if (n == Nil){
+        return key;
+    }
+    while(n != Nil){
+        push(it->s, n);
+        n = n->left;
+    }
+    return key;
+}
+
 static int dict_ass_sub(PyObject *self, PyObject *v, PyObject *w)
 {
 	if (w == NULL)
@@ -391,8 +418,42 @@ static PyMappingMethods tree_as_mapping = {
 	(objobjargproc)dict_ass_sub, /*mp_ass_subscript*/
 };
 
+PyTypeObject PyRBTreeIter_Type = {
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    "rbtreeiterator",                           /* tp_name */
+    sizeof(rbtreeiterobj),                      /* tp_basicsize */
+    0,                                          /* tp_itemsize */
+    /* methods */
+    0, //(destructor)listiter_dealloc,          /* tp_dealloc */
+    0,                                          /* tp_print */
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+    0,                                          /* tp_compare */
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    PyObject_GenericGetAttr,                    /* tp_getattro */
+    0,                                          /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+    0,                                          /* tp_doc */
+    0, //(traverseproc)listiter_traverse,       /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    PyObject_SelfIter,                          /* tp_iter */
+    (iternextfunc)rbtreeiter_next,              /* tp_iternext */
+    0,                                          /* tp_methods */
+    0,                                          /* tp_members */
+};
+
+static PyObject * list_iter(PyObject*);
+
 static PyTypeObject RBTreeType = {
-    //PyVarObject_HEAD_INIT(NULL, 0)
     PyObject_HEAD_INIT(NULL)
     0,                                // ob_size
     "rbtree.RBTree",                  // tp_name
@@ -419,7 +480,7 @@ static PyTypeObject RBTreeType = {
     0,                                // tp_clear
     0,                                // tp_richcompare
     0,                                // tp_weaklistoffset
-    0,                                // tp_iter
+    list_iter,                        // tp_iter
     0,                                // tp_iternext
     TreeMethods,                      // tp_methods
     TreeMembers,                      // tp_members
@@ -434,26 +495,52 @@ static PyTypeObject RBTreeType = {
     PyRBTree_New,                     // tp_new
 };
 
+static PyObject *
+list_iter(PyObject *t)
+{
+    rbtreeiterobj *it;
+    if (PyObject_Type(t) != (PyObject*)&RBTreeType) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
+	it = (rbtreeiterobj *)PyRBTreeIter_Type.tp_alloc(&PyRBTreeIter_Type, 0);
+    if (it == NULL)
+        return NULL;
+    it->s = PyObject_Malloc(sizeof(stack));
+    it->s->size = 0;
+    it->s->head = NULL;
+    rbnode *n = ((PyRBTree *)t)->root;
+    while (n != Nil){
+        push(it->s, n);
+        n = n->left;
+    }
+    return (PyObject *)it;
+}
+
 PyMODINIT_FUNC initrbtree(void)
 {
-
     PyObject *m = Py_InitModule3("rbtree", NULL, "rbtree module");
     if (m == NULL)
         return;
     if (PyType_Ready(&RBTreeType) < 0)
         return;
-	Nil = &nil;
-	Nil->black = 1;
-    black = PyString_FromString("black");
-    id = PyString_FromString("id");
-    key = PyString_FromString("key");
-    value = PyString_FromString("value");
-    left = PyString_FromString("left");
-    right = PyString_FromString("right");
     Py_INCREF(&RBTreeType);
+    if (PyType_Ready(&PyRBTreeIter_Type) < 0)
+        return;
+    Py_INCREF(&PyRBTreeIter_Type);
     PyModule_AddObject(m, "RBTree", (PyObject*)&RBTreeType);
     RBTreeError = PyErr_NewException("rbtree.error", NULL, NULL);
     Py_INCREF(RBTreeError);
     PyModule_AddObject(m, "error", RBTreeError);
+
+	Nil = &nil;
+	Nil->black = 1;
+    g_black = PyString_FromString("black");
+    g_id = PyString_FromString("id");
+    g_key = PyString_FromString("key");
+    g_value = PyString_FromString("value");
+    g_left = PyString_FromString("left");
+    g_right = PyString_FromString("right");
 }
 
