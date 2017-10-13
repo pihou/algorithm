@@ -27,11 +27,11 @@ def main():
     start = time.time()
     for i in xrange(10):
         num = random.randint(0, 10000)
-        t[num] = str(num)
+        t[str(num)] = num
         data.append(num)
     #dot = Digraph()
     for i in t:
-        print i
+        print i, type(i)
     #print_tree(dot, t.debug())
     #dots.subgraph(dot)
     ##t.debug()

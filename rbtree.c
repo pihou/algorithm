@@ -113,6 +113,8 @@ static PyObject *debug(PyObject *self, PyObject *args)
 
 static PyMethodDef TreeMethods[] = {
     {"debug",  debug, METH_VARARGS, "debug rbtree"},
+    //{"popmin",  debug, METH_VARARGS, "debug rbtree"},
+    //{"popmax",  debug, METH_VARARGS, "debug rbtree"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -175,14 +177,17 @@ static void rotate_right(PyRBTree *t, rbnode *n){
 static rbnode *find_node(PyObject *t, PyObject *v){
 	rbnode * n = ((PyRBTree *)t)->root;
 	rbnode * f = NULL;
-	long h = PyObject_Hash(v);
-    long hash = 0;
+    int compare = 0;
 	while (n!=Nil){
-		hash = PyObject_Hash(n->key);
-		if (h == hash){
-			break;
-		}
-        n = h>hash ? n->right:n->left;
+        compare = PyObject_RichCompareBool(n->key, v, Py_EQ);
+        if (compare < 0)
+            return NULL;
+        if (compare > 0)
+            break;
+        compare = PyObject_RichCompareBool(n->key, v, Py_LT);
+        if (compare < 0)
+            return NULL;
+        n = compare ? n->right:n->left;
 	}
 	if (n == Nil){
 		PyErr_SetString(RBTreeError, "not exists");
@@ -307,11 +312,31 @@ static int add_node(PyObject *self, PyObject *v, PyObject *w){
 		x->black = 1;
 		return 0;
 	}
-	long hash = PyObject_Hash(v);
+    int compare = 0;
 	rbnode *n = t->root;
 	while (n != Nil){
-		long h = PyObject_Hash(n->key);
-		if (hash > h){
+        compare = PyObject_RichCompareBool(n->key, v, Py_EQ);
+        if (compare < 0){
+            Py_DECREF(v);
+            Py_DECREF(w);
+            PyObject_Free(x);
+            return compare;
+        }
+        if (compare){
+            Py_DECREF(n->value);
+            Py_DECREF(v);
+            n->value = w;
+            PyObject_Free(x);
+            return 0;
+        }
+        compare = PyObject_RichCompareBool(n->key, v, Py_LT);
+        if (compare < 0){
+            Py_DECREF(v);
+            Py_DECREF(w);
+            PyObject_Free(x);
+            return compare;
+        }
+		if (compare){
 			if (n->right == Nil){
 				x->parent = n;
 				n->right = x;
