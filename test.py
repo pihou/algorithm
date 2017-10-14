@@ -27,12 +27,9 @@ def main():
     for i in xrange(10):
         num = random.randint(0, 10000)
         print(">>>>>>>> FanPrint[1].main", i)
-        t[str(num)] = num
+        t[num] = num
         data.append(num)
-    print(">>>>>>>> FanPrint[0].main", main)
     #dot = Digraph()
-    for i,j in t:
-        print i, type(i), j, type(j)
     #print_tree(dot, t.debug())
     #dots.subgraph(dot)
     ##t.debug()
@@ -47,4 +44,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+    

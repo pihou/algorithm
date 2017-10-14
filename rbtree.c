@@ -1,5 +1,6 @@
 #include <python2.7/Python.h>
 #include <python2.7/structmember.h>
+#include <stdbool.h>
 
 typedef struct rbnode{
     PyObject *key;
@@ -13,6 +14,7 @@ typedef struct rbnode{
 typedef struct {
     PyObject_HEAD
     rbnode *root;
+    bool repeat;
 }PyRBTree;
 
 typedef struct stack{
@@ -176,6 +178,7 @@ static PyMethodDef TreeMethods[] = {
 
 
 static PyMemberDef TreeMembers[] = {
+    {"repeat",  T_BOOL, offsetof(PyRBTree,repeat), RESTRICTED|READONLY},
     {NULL}  /* Sentinel */
 };
 
@@ -183,10 +186,20 @@ static PyObject *
 PyRBTree_New(PyTypeObject* type, PyObject* args, PyObject* kw)
 {
 	PyRBTree *self;
+    PyObject *repeat = NULL;
+    if (!PyArg_ParseTuple(args, "|O:ref", &repeat)){
+        return NULL;
+    }
 	self = (PyRBTree *)type->tp_alloc(type, 0);
-	if (self != NULL) {
-		self->root = Nil;
-	}
+    if (!self){
+        return (PyObject*)self;
+    }
+    self->root = Nil;
+    if (!repeat || repeat == Py_False){
+        self->repeat = false;
+    }else{
+        self->repeat = true;
+    }
 	return (PyObject *)self;
 }
 
@@ -230,20 +243,24 @@ static void rotate_right(PyRBTree *t, rbnode *n){
 	lr->parent = n;
 }
 
+static int compare(PyObject*, PyObject*);
 static rbnode *find_node(PyObject *t, PyObject *v){
+    if (((PyRBTree *)t)->repeat){
+		PyErr_SetString(RBTreeError, "not support this operation when rbtree repeat on");
+        return NULL;
+    }
 	rbnode * n = ((PyRBTree *)t)->root;
 	rbnode * f = NULL;
-    int compare = 0;
+    int result = 0;
 	while (n!=Nil){
-        compare = PyObject_RichCompareBool(n->key, v, Py_EQ);
-        if (compare < 0)
-            return NULL;
-        if (compare > 0)
+        result = compare(v, n->key);
+        if (result == 0){
             break;
-        compare = PyObject_RichCompareBool(n->key, v, Py_LT);
-        if (compare < 0)
+        }else if (result == 1 || result == -1){
+            n = result == 1 ? n->right:n->left;
+        }else{
             return NULL;
-        n = compare ? n->right:n->left;
+        }
 	}
 	if (n == Nil){
 		PyErr_SetString(RBTreeError, "not exists");
@@ -311,6 +328,10 @@ static void balance_tree_remove(PyObject *self, rbnode *node){
 }
 
 static int remove_node(PyObject *self, PyObject *v, rbnode *t){
+    if (((PyRBTree *)self)->repeat){
+		PyErr_SetString(RBTreeError, "not support this operation when rbtree repeat on");
+        return -1;
+    }
     rbnode *target = NULL;
     if (!t){
         target = find_node(self, v);
@@ -353,13 +374,30 @@ static int remove_node(PyObject *self, PyObject *v, rbnode *t){
 	return 0;
 }
 
-static int add_node(PyObject *self, PyObject *v, PyObject *w){
-    PyRBTree *t = (PyRBTree *)self;
-    rbnode *x = PyObject_Malloc(sizeof(rbnode));
-    if (!x){
+static int compare(PyObject *a, PyObject *b){
+    int result = PyObject_RichCompareBool(a, b, Py_EQ);
+    if (result < 0){
+        return 0xFF;
+    }
+    if (result){
+        return 0;
+    }
+    result = PyObject_RichCompareBool(a, b, Py_LT);
+    if (result < 0){
+        return 0xFF;
+    }
+    if (result){
         return -1;
     }
-    ((PyObject *)x)->ob_refcnt = 1;
+    return 1;
+}
+
+static rbnode *make_node(PyObject *v, PyObject *w){
+    rbnode *x = PyObject_Malloc(sizeof(rbnode));
+    if (!x){
+        return NULL;
+    }
+    ((PyObject *)x)->ob_refcnt = 0;
     Py_INCREF(v);
     Py_INCREF(w);
     x->key = v;
@@ -368,50 +406,50 @@ static int add_node(PyObject *self, PyObject *v, PyObject *w){
 	x->left = Nil;
 	x->right = Nil;
 	x->black = 0;
+    return x;
+}
+
+static int add_node(PyObject *self, PyObject *v, PyObject *w){
+    PyRBTree *t = (PyRBTree *)self;
+    rbnode *x = NULL;
 	if (!t->root || t->root == Nil){
+        x = make_node(v, w);
+        if (!x){
+            return -1;
+        }
 		t->root = x;
 		x->black = 1;
 		return 0;
 	}
-    int compare = 0;
+
+    int result = 0;
 	rbnode *n = t->root;
 	while (n != Nil){
-        compare = PyObject_RichCompareBool(n->key, v, Py_EQ);
-        if (compare < 0){
-            Py_DECREF(v);
-            Py_DECREF(w);
-            PyObject_Free(x);
-            return compare;
-        }
-        if (compare){
+        result = compare(v, n->key);
+        if (result == 1){
+            if (n->right == Nil){
+                x = make_node(v, w);
+                x->parent = n;
+                n->right = x;
+                break;
+            }
+            n = n->right;
+        }else if (result == -1 || (t->repeat && result == 0)){
+            if (n->left == Nil){
+                x = make_node(v, w);
+                x->parent = n;
+                n->left = x;
+                break;
+            }
+            n = n->left;
+        }else{
+            Py_DECREF(n->key);
             Py_DECREF(n->value);
-            Py_DECREF(v);
-            n->value = w;
-            PyObject_Free(x);
+            x = make_node(v, w);
+            n->key = x->key;
+            n->value = x->value;
             return 0;
         }
-        compare = PyObject_RichCompareBool(n->key, v, Py_LT);
-        if (compare < 0){
-            Py_DECREF(v);
-            Py_DECREF(w);
-            PyObject_Free(x);
-            return compare;
-        }
-		if (compare){
-			if (n->right == Nil){
-				x->parent = n;
-				n->right = x;
-				break;
-			}
-			n = n->right;
-		}else{
-			if (n->left == Nil){
-				x->parent = n;
-				n->left = x;
-				break;
-			}
-			n = n->left;
-		}
 	}
 	n = x;
 	rbnode *p = NULL;
