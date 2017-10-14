@@ -6,7 +6,6 @@ import time
 import gc
 import sys
 
-
 def print_tree(dot, debug, i=0):
     i = str(i)
     for info in debug:
@@ -27,11 +26,13 @@ def main():
     start = time.time()
     for i in xrange(10):
         num = random.randint(0, 10000)
+        print(">>>>>>>> FanPrint[1].main", i)
         t[str(num)] = num
         data.append(num)
+    print(">>>>>>>> FanPrint[0].main", main)
     #dot = Digraph()
-    for i in t:
-        print i, type(i)
+    for i,j in t:
+        print i, type(i), j, type(j)
     #print_tree(dot, t.debug())
     #dots.subgraph(dot)
     ##t.debug()

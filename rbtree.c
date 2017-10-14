@@ -72,23 +72,23 @@ static void *pop(stack *s){
 
 rbnode nil;
 static rbnode * Nil;
-static PyObject *g_id;
-static PyObject *g_left;
-static PyObject *g_right;
-static PyObject *g_key;
-static PyObject *g_black;
-static PyObject *g_value;
+static PyObject *g_ID;
+static PyObject *g_LEFT;
+static PyObject *g_RIGHT;
+static PyObject *g_KEY;
+static PyObject *g_BLACK;
+static PyObject *g_VALUE;
 static PyObject *RBTreeError;
 
 static PyObject *make_debug_info(rbnode *n){
     PyObject *i = PyDict_New();
     PyObject *x = PyLong_FromLong((long)n);
-    PyDict_SetItem(i, g_id, x);
-    PyDict_SetItem(i, g_left, n->left?PyLong_FromLong((long)n->left):Py_None);
-    PyDict_SetItem(i, g_right, n->right?PyLong_FromLong((long)n->right):Py_None);
-    PyDict_SetItem(i, g_black, n->black?Py_True:Py_False);
-    PyDict_SetItem(i, g_key, n->key?n->key:Py_None);
-    PyDict_SetItem(i, g_value, n->value?n->value:Py_None);
+    PyDict_SetItem(i, g_ID, x);
+    PyDict_SetItem(i, g_LEFT, n->left?PyLong_FromLong((long)n->left):Py_None);
+    PyDict_SetItem(i, g_RIGHT, n->right?PyLong_FromLong((long)n->right):Py_None);
+    PyDict_SetItem(i, g_BLACK, n->black?Py_True:Py_False);
+    PyDict_SetItem(i, g_KEY, n->key?n->key:Py_None);
+    PyDict_SetItem(i, g_VALUE, n->value?n->value:Py_None);
     return i;
 }
 
@@ -407,17 +407,15 @@ rbtreeiter_next(PyObject *t)
         return NULL;
     }
     rbnode *n = pop(it->s);
-    PyObject *key = n->key;
-    Py_INCREF(key);
     n = n->right;
     if (n == Nil){
-        return key;
+        return PyTuple_Pack(2, n->key, n->value);
     }
     while(n != Nil){
         push(it->s, n);
         n = n->left;
     }
-    return key;
+    return PyTuple_Pack(2, n->key, n->value);
 }
 
 static int dict_ass_sub(PyObject *self, PyObject *v, PyObject *w)
@@ -561,11 +559,11 @@ PyMODINIT_FUNC initrbtree(void)
 
 	Nil = &nil;
 	Nil->black = 1;
-    g_black = PyString_FromString("black");
-    g_id = PyString_FromString("id");
-    g_key = PyString_FromString("key");
-    g_value = PyString_FromString("value");
-    g_left = PyString_FromString("left");
-    g_right = PyString_FromString("right");
+    g_BLACK = PyString_FromString("black");
+    g_ID = PyString_FromString("id");
+    g_KEY = PyString_FromString("key");
+    g_VALUE = PyString_FromString("value");
+    g_LEFT = PyString_FromString("left");
+    g_RIGHT = PyString_FromString("right");
 }
 
