@@ -407,15 +407,16 @@ rbtreeiter_next(PyObject *t)
         return NULL;
     }
     rbnode *n = pop(it->s);
+	rbnode *r = n;
     n = n->right;
     if (n == Nil){
-        return PyTuple_Pack(2, n->key, n->value);
+        return PyTuple_Pack(2, r->key, r->value);
     }
     while(n != Nil){
         push(it->s, n);
         n = n->left;
     }
-    return PyTuple_Pack(2, n->key, n->value);
+    return PyTuple_Pack(2, r->key, r->value);
 }
 
 static int dict_ass_sub(PyObject *self, PyObject *v, PyObject *w)

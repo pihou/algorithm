@@ -1,4 +1,4 @@
-from graphviz import Digraph
+#from graphviz import Digraph
 from rbtree import RBTree
 
 import random
@@ -20,7 +20,7 @@ def print_tree(dot, debug, i=0):
             dot.edge(i+str(info["id"]), i+str(info["right"]))
 
 def main():
-    dots = Digraph(name="dots")
+    #dots = Digraph(name="dots")
     t = RBTree()
     data = []
     start = time.time()
