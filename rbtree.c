@@ -574,7 +574,7 @@ PyTypeObject PyRBTreeIter_Type = {
     0,                                          /* tp_members */
 };
 
-static PyObject * list_iter(PyObject*);
+static PyObject * tree_iter(PyObject*);
 
 static PyTypeObject RBTreeType = {
     PyObject_HEAD_INIT(NULL)
@@ -603,7 +603,7 @@ static PyTypeObject RBTreeType = {
     0,                                // tp_clear
     0,                                // tp_richcompare
     0,                                // tp_weaklistoffset
-    list_iter,                        // tp_iter
+    tree_iter,                        // tp_iter
     0,                                // tp_iternext
     TreeMethods,                      // tp_methods
     TreeMembers,                      // tp_members
@@ -619,7 +619,7 @@ static PyTypeObject RBTreeType = {
 };
 
 static PyObject *
-list_iter(PyObject *t)
+tree_iter(PyObject *t)
 {
     rbtreeiterobj *it;
     if (PyObject_Type(t) != (PyObject*)&RBTreeType) {
