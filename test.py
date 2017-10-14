@@ -24,11 +24,11 @@ def main():
     t = RBTree()
     data = []
     start = time.time()
-    for i in xrange(10):
-        num = random.randint(0, 10000)
-        print(">>>>>>>> FanPrint[1].main", i)
-        t[num] = num
-        data.append(num)
+    time.sleep(5)
+    for i in xrange(100*10000):
+        num = random.randint(10000, 10000*100)
+        t[num] = str(num)
+        #data.append(num)
     #dot = Digraph()
     #print_tree(dot, t.debug())
     #dots.subgraph(dot)
@@ -41,6 +41,9 @@ def main():
     #end = time.time()
     #print "total time:%s" % (end-start)
     #dots.render(view=True)
+    del t
+    gc.collect()
+    time.sleep(1000)
 
 if __name__ == "__main__":
     main()

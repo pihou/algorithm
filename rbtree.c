@@ -575,6 +575,24 @@ PyTypeObject PyRBTreeIter_Type = {
 };
 
 static PyObject * tree_iter(PyObject*);
+static void tree_dealloc(PyRBTree *op)
+{
+    stack  s = {NULL, 0};
+    rbnode *n = NULL;
+    push(&s, op->root);
+    while(s.size > 0){
+        n = pop(&s);
+        if (n->left != Nil){
+            push(&s, n->left);
+        }
+        if (n->right != Nil){
+            push(&s, n->right);
+        }
+        Py_DECREF(n->key);
+        Py_DECREF(n->value);
+        PyObject_Free(n);
+    }
+}
 
 static PyTypeObject RBTreeType = {
     PyObject_HEAD_INIT(NULL)
@@ -582,7 +600,7 @@ static PyTypeObject RBTreeType = {
     "rbtree.RBTree",                  // tp_name
     sizeof(PyRBTree),                 // tp_basicsize
     0,                                // tp_itemsize
-    0,                                // tp_dealloc
+    (destructor)tree_dealloc,         // tp_dealloc
     0,                                // tp_print
     0,                                // tp_getattr
     0,                                // tp_setattr
