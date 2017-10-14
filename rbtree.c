@@ -111,10 +111,66 @@ static PyObject *debug(PyObject *self, PyObject *args)
     return list;
 }
 
+static PyObject *peekmin(PyObject *self, PyObject *args)
+{
+	rbnode * n = ((PyRBTree *)self)->root;
+    if (n == Nil){
+        return Py_None;
+    }
+    while (n->left != Nil){
+        n = n->left;
+    }
+    return PyTuple_Pack(2,n->key,n->value);
+}
+
+static PyObject *peekmax(PyObject *self, PyObject *args)
+{
+	rbnode * n = ((PyRBTree *)self)->root;
+    if (n == Nil){
+        return Py_None;
+    }
+    while (n->right != Nil){
+        n = n->right;
+    }
+    return PyTuple_Pack(2,n->key,n->value);
+}
+
+static int remove_node(PyObject*, PyObject*, rbnode*);
+
+static PyObject *popmin(PyObject *self, PyObject *args)
+{
+	rbnode * n = ((PyRBTree *)self)->root;
+    if (n == Nil){
+        return Py_None;
+    }
+    while (n->left != Nil){
+        n = n->left;
+    }
+    PyObject * r = PyTuple_Pack(2,n->key,n->value);
+    remove_node(self, NULL, n);
+    return r;
+}
+
+static PyObject *popmax(PyObject *self, PyObject *args)
+{
+	rbnode * n = ((PyRBTree *)self)->root;
+    if (n == Nil){
+        return Py_None;
+    }
+    while (n->right != Nil){
+        n = n->right;
+    }
+    PyObject * r = PyTuple_Pack(2,n->key,n->value);
+    remove_node(self, NULL, n);
+    return r;
+}
+
 static PyMethodDef TreeMethods[] = {
     {"debug",  debug, METH_VARARGS, "debug rbtree"},
-    //{"popmin",  debug, METH_VARARGS, "debug rbtree"},
-    //{"popmax",  debug, METH_VARARGS, "debug rbtree"},
+    {"peekmin",  peekmin, METH_VARARGS, "peek min key value"},
+    {"peekmax",  peekmax, METH_VARARGS, "peek max key value"},
+    {"popmin",  popmin, METH_VARARGS, "pop min key value as tuple"},
+    {"popmax",  popmax, METH_VARARGS, "pop max key value as tuple"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -254,8 +310,13 @@ static void balance_tree_remove(PyObject *self, rbnode *node){
     }
 }
 
-static int remove_node(PyObject *self, PyObject *v){
-	rbnode *target = find_node(self, v);
+static int remove_node(PyObject *self, PyObject *v, rbnode *t){
+    rbnode *target = NULL;
+    if (!t){
+        target = find_node(self, v);
+    }else{
+        target  = t;
+    }
     if (!target){
         return -1;
     }
@@ -422,7 +483,7 @@ rbtreeiter_next(PyObject *t)
 static int dict_ass_sub(PyObject *self, PyObject *v, PyObject *w)
 {
 	if (w == NULL)
-		return remove_node(self, v);
+		return remove_node(self, v, NULL);
     return add_node(self, v, w);
 }
 
